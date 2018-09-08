@@ -1,8 +1,10 @@
 package taxapi
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
+	"time"
 )
 
 // VATResponse is the response from /vat/rates
@@ -80,8 +82,27 @@ type ReducedRates struct {
 
 // GetAllVATRates returns VAT rates for all participating EU countries
 func (c *Client) GetAllVATRates() (VATResponse, error) {
+	cacheKey := "vatRates"
 	result := new(VATResponse)
+
+	// If caching is enabled, attempt to first get the result from cache
+	if c.cache != nil {
+		cacheResult, cacheHit := c.cache.Get(cacheKey)
+
+		fmt.Println(cacheResult, cacheHit)
+
+		if cacheHit {
+			result = cacheResult.(*VATResponse)
+			return *result, nil
+		}
+	}
+
 	_, err := c.makeRequest("/vat/rates", http.MethodGet, [][]string{}, result)
+
+	// If caching is enabled, store the result in cache for a day
+	if c.cache != nil {
+		c.cache.Set(cacheKey, result, time.Hour*24)
+	}
 
 	return *result, err
 }

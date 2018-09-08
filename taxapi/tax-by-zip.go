@@ -1,15 +1,18 @@
 package taxapi
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // SalesTaxByZip is the response object from /salestax/zip/{zip}
 type SalesTaxByZip struct {
-	Status string `json:"status"`
-	Rates  Rates  `json:"rates"`
+	Status string        `json:"status"`
+	Rates  SalesTaxRates `json:"rates"`
 }
 
-// Rates contains the tax rate data for a given zip
-type Rates struct {
+// SalesTaxRates contains the tax rate data for a given zip
+type SalesTaxRates struct {
 	State                 string  `json:"state"`
 	ZipCode               string  `json:"zipCode"`
 	TaxRegionName         string  `json:"taxRegionName"`
@@ -23,8 +26,25 @@ type Rates struct {
 
 // GetSalesTaxByZip will return sales tax data given a valid Zip Code
 func (c *Client) GetSalesTaxByZip(zip string) (SalesTaxByZip, error) {
+	cacheKey := "salesTax_" + zip
 	result := new(SalesTaxByZip)
+
+	// If caching is enabled, attempt to first get the result from cache
+	if c.cache != nil {
+		cacheResult, cacheHit := c.cache.Get(cacheKey)
+
+		if cacheHit {
+			result = cacheResult.(*SalesTaxByZip)
+			return *result, nil
+		}
+	}
+
 	_, err := c.makeRequest("/salestax/zip/"+zip, http.MethodGet, [][]string{}, result)
+
+	// If caching is enabled, store the result in cache for a day
+	if c.cache != nil {
+		c.cache.Set(cacheKey, result, time.Hour*24)
+	}
 
 	return *result, err
 }
