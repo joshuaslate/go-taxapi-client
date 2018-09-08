@@ -5,7 +5,7 @@ This is a Go-based wrapper for the free (but rate-limited) [TaxAPI.io](https://t
 ```go
 package main
 
-import "github.com/joshuaslate/go-taxapi-client"
+import "github.com/joshuaslate/go-taxapi-client/taxapi"
 
 func main() {
   // To enable caching (the argument passed here is a boolean for whether or not you would like the results to be cached in-memory)
